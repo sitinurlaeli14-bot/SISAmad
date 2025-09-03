@@ -476,13 +476,14 @@
                     const id = e.target.closest(`.btn-edit-${entity}`).dataset.id;
                     const dataToEdit = state[entity].find(item => item.id === id);
                     if (dataToEdit) {
+                        openModal(entity); // Buka modal dan reset form
+                        // Isi form dengan data yang akan di-edit
                         form.querySelector('#edit-id').value = id;
                         for (const key in dataToEdit) {
                             if (form.elements[key]) {
                                 form.elements[key].value = dataToEdit[key];
                             }
                         }
-                        openModal(entity);
                     }
                 }
             });
@@ -494,6 +495,15 @@
             const form = document.getElementById(`form-${entity}`);
             form.reset();
             form.querySelector('#edit-id').value = '';
+            
+            // Pastikan field NIS tidak readonly saat modal dibuka (untuk kasus edit)
+            if (entity === 'siswa') {
+                const nisInput = form.querySelector('#nis');
+                if (nisInput) {
+                    nisInput.removeAttribute('readonly');
+                }
+            }
+
             modal.classList.remove('hidden');
         };
 
@@ -522,7 +532,32 @@
             document.querySelector('.sidebar-link[href="#absensi"]').addEventListener('click', (e) => { e.preventDefault(); switchView('absensi'); renderAbsensiDropdowns(); fetchAbsensi(); });
             
             // Event listener untuk tombol tambah data
-            document.getElementById('btn-add-siswa').addEventListener('click', () => openModal('siswa'));
+            document.getElementById('btn-add-siswa').addEventListener('click', () => {
+                openModal('siswa'); // Buka & reset modal
+
+                // Buat NIS Otomatis
+                const currentYear = new Date().getFullYear().toString();
+                const prefix = '908' + currentYear;
+
+                const studentsThisYear = state.siswa.filter(s => s.nis && s.nis.startsWith(prefix));
+                
+                let nextSequence = 1;
+                if (studentsThisYear.length > 0) {
+                    const maxSequence = Math.max(...studentsThisYear.map(s => {
+                        const seq = parseInt(s.nis.slice(prefix.length), 10);
+                        return isNaN(seq) ? 0 : seq;
+                    }));
+                    nextSequence = maxSequence + 1;
+                }
+
+                const newNis = prefix + nextSequence.toString().padStart(3, '0');
+                
+                const nisInput = document.querySelector('#form-siswa #nis');
+                if (nisInput) {
+                    nisInput.value = newNis;
+                    nisInput.setAttribute('readonly', true);
+                }
+            });
             document.getElementById('btn-add-guru').addEventListener('click', () => openModal('guru'));
             document.getElementById('btn-add-mapel').addEventListener('click', () => openModal('mapel'));
             document.getElementById('btn-add-kelas').addEventListener('click', () => openModal('kelas'));
@@ -636,6 +671,7 @@
             const mapelId = document.getElementById('nilai-filter-mapel').value;
             
             if (!kelasId || !mapelId) {
+                const tableBody = document.getElementById('nilai-table-body');
                 if(tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Pilih kelas dan mata pelajaran terlebih dahulu.</td></tr>';
                 return;
             };
