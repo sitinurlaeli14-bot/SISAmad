@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Akademik Sekolah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link { transition: all 0.2s ease-in-out; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #3b82f6; color: white; }
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); z-index: 40;
+        }
+        .modal-content {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-4 border-b border-gray-700 flex items-center space-x-2">
+                <i data-lucide="graduation-cap"></i>
+                <h1 class="text-xl font-bold">SIAKAD Sekolah</h1>
+            </div>
+            <nav class="flex-1 p-2 space-y-2">
+                <a href="#dashboard" class="sidebar-link flex items-center space-x-3 p-2 rounded-md active">
+                    <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+                </a>
+                <h2 class="px-2 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Data Master</h2>
+                <a href="#siswa" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="users"></i><span>Data Siswa</span>
+                </a>
+                <a href="#guru" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="user-check"></i><span>Data Guru</span>
+                </a>
+                <a href="#mapel" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="book-open"></i><span>Mata Pelajaran</span>
+                </a>
+                <a href="#kelas" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="school"></i><span>Data Kelas</span>
+                </a>
+                <h2 class="px-2 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Akademik</h2>
+                <a href="#nilai" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="file-pen-line"></i><span>Input Nilai</span>
+                </a>
+                <a href="#absensi" class="sidebar-link flex items-center space-x-3 p-2 rounded-md">
+                    <i data-lucide="calendar-check"></i><span>Absensi Siswa</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700 text-sm">
+                <p>User ID:</p>
+                <p id="userIdDisplay" class="font-mono text-xs break-all">Loading...</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view active-view">
+                <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">Jumlah Siswa</p>
+                            <p id="total-siswa" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full"><i data-lucide="users" class="text-blue-500"></i></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">Jumlah Guru</p>
+                            <p id="total-guru" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full"><i data-lucide="user-check" class="text-green-500"></i></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">Jumlah Kelas</p>
+                            <p id="total-kelas" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full"><i data-lucide="school" class="text-yellow-500"></i></div>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500">Mata Pelajaran</p>
+                            <p id="total-mapel" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full"><i data-lucide="book-open" class="text-purple-500"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generic Data Master View Structure -->
+            <div id="view-siswa" class="view hidden"></div>
+            <div id="view-guru" class="view hidden"></div>
+            <div id="view-mapel" class="view hidden"></div>
+            <div id="view-kelas" class="view hidden"></div>
+
+            <!-- Input Nilai View -->
+            <div id="view-nilai" class="view hidden">
+                <h1 class="text-3xl font-bold mb-6">Input Nilai Siswa</h1>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex space-x-4 mb-4">
+                        <div class="flex-1">
+                            <label for="nilai-filter-kelas" class="block text-sm font-medium text-gray-700">Pilih Kelas</label>
+                            <select id="nilai-filter-kelas" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
+                        </div>
+                        <div class="flex-1">
+                            <label for="nilai-filter-mapel" class="block text-sm font-medium text-gray-700">Pilih Mata Pelajaran</label>
+                            <select id="nilai-filter-mapel" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Siswa</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tugas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UTS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nilai-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Data nilai akan diisi di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Absensi View -->
+            <div id="view-absensi" class="view hidden">
+                <h1 class="text-3xl font-bold mb-6">Absensi Siswa</h1>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-4">
+                        <div class="flex-1">
+                            <label for="absensi-filter-kelas" class="block text-sm font-medium text-gray-700">Pilih Kelas</label>
+                            <select id="absensi-filter-kelas" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
+                        </div>
+                        <div class="flex-1">
+                            <label for="absensi-filter-tanggal" class="block text-sm font-medium text-gray-700">Pilih Tanggal</label>
+                            <input type="date" id="absensi-filter-tanggal" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Siswa</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Kehadiran</th>
+                                </tr>
+                            </thead>
+                            <tbody id="absensi-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Data absensi akan diisi di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button id="btn-save-all-absensi" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md flex items-center space-x-2">
+                            <i data-lucide="save"></i>
+                            <span>Simpan Semua Perubahan</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+    
+    <script type="module">
+        // Import fungsi-fungsi Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, addDoc, setDoc, deleteDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- KONFIGURASI FIREBASE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "...", ...{}};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let currentUserId = null;
+
+        // --- MANAJEMEN OTENTIKASI ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                document.getElementById('userIdDisplay').textContent = currentUserId;
+                initializeAppState();
+            } else {
+                 try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    document.getElementById('userIdDisplay').textContent = 'Error Auth';
+                }
+            }
+        });
+
+        // --- MANAJEMEN STATE APLIKASI ---
+        const state = {
+            siswa: [],
+            guru: [],
+            mapel: [],
+            kelas: [],
+            nilai: {},
+            absensi: {}
+        };
+        
+        // --- TEMPLATE & RENDER ---
+        
+        // Fungsi untuk membuat struktur halaman data master generik
+        const createMasterViewHTML = (viewId, title, buttonText, tableHeaders) => {
+            const view = document.getElementById(`view-${viewId}`);
+            if (!view) return;
+            
+            let headersHTML = tableHeaders.map(h => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('');
+            
+            view.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">${title}</h1>
+                    <button id="btn-add-${viewId}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md flex items-center space-x-2">
+                        <i data-lucide="plus"></i>
+                        <span>${buttonText}</span>
+                    </button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>${headersHTML}<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th></tr>
+                            </thead>
+                            <tbody id="${viewId}-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Data akan di-render di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+        };
+
+        // Fungsi untuk membuat struktur modal generik
+        const createModalHTML = (modalId, title, formFields) => {
+            let fieldsHTML = formFields.map(field => {
+                if (field.type === 'select') {
+                    return `
+                        <div class="mb-4">
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-700">${field.label}</label>
+                            <select id="${field.id}" name="${field.id}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="">-- ${field.placeholder} --</option>
+                                ${field.options.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('')}
+                            </select>
+                        </div>`;
+                }
+                return `
+                    <div class="mb-4">
+                        <label for="${field.id}" class="block text-sm font-medium text-gray-700">${field.label}</label>
+                        <input type="${field.type}" id="${field.id}" name="${field.id}" placeholder="${field.placeholder}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md p-2">
+                    </div>`;
+            }).join('');
+            
+            return `
+                <div id="${modalId}" class="modal hidden">
+                    <div class="modal-backdrop"></div>
+                    <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                        <h2 class="text-2xl font-bold mb-4">${title}</h2>
+                        <form id="form-${modalId.split('-')[1]}">
+                            <input type="hidden" id="edit-id">
+                            ${fieldsHTML}
+                            <div class="flex justify-end space-x-2 mt-6">
+                                <button type="button" class="btn-cancel bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md">Batal</button>
+                                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>`;
+        };
+        
+        // --- RENDER FUNCTIONS ---
+        const renderSiswaTable = () => {
+            const tableBody = document.getElementById('siswa-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = state.siswa.map(s => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.nis}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${state.kelas.find(k => k.id === s.id_kelas)?.nama_kelas || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="btn-edit-siswa text-blue-500 hover:text-blue-700" data-id="${s.id}"><i data-lucide="edit"></i></button>
+                        <button class="btn-delete-siswa text-red-500 hover:text-red-700" data-id="${s.id}"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const renderGuruTable = () => {
+            const tableBody = document.getElementById('guru-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = state.guru.map(g => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${g.nip}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${g.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${g.mapel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="btn-edit-guru text-blue-500 hover:text-blue-700" data-id="${g.id}"><i data-lucide="edit"></i></button>
+                        <button class="btn-delete-guru text-red-500 hover:text-red-700" data-id="${g.id}"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const renderMapelTable = () => {
+             const tableBody = document.getElementById('mapel-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = state.mapel.map(m => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${m.kode_mapel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${m.nama_mapel}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="btn-edit-mapel text-blue-500 hover:text-blue-700" data-id="${m.id}"><i data-lucide="edit"></i></button>
+                        <button class="btn-delete-mapel text-red-500 hover:text-red-700" data-id="${m.id}"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        };
+        
+        const renderKelasTable = () => {
+            const tableBody = document.getElementById('kelas-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = state.kelas.map(k => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${k.nama_kelas}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${state.guru.find(g => g.id === k.id_walikelas)?.nama || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="btn-edit-kelas text-blue-500 hover:text-blue-700" data-id="${k.id}"><i data-lucide="edit"></i></button>
+                        <button class="btn-delete-kelas text-red-500 hover:text-red-700" data-id="${k.id}"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const renderNilaiTable = () => {
+            const tableBody = document.getElementById('nilai-table-body');
+            const kelasId = document.getElementById('nilai-filter-kelas').value;
+            const mapelId = document.getElementById('nilai-filter-mapel').value;
+            
+            if (!tableBody || !kelasId || !mapelId) {
+                if(tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Pilih kelas dan mata pelajaran terlebih dahulu.</td></tr>';
+                return;
+            };
+
+            const filteredSiswa = state.siswa.filter(s => s.id_kelas === kelasId);
+            if (filteredSiswa.length === 0) {
+                 tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Tidak ada siswa di kelas ini.</td></tr>';
+                 return;
+            }
+
+            tableBody.innerHTML = filteredSiswa.map(s => {
+                const nilaiKey = `${s.id}_${mapelId}`;
+                const nilai = state.nilai[nilaiKey] || { tugas: '', uts: '', uas: '' };
+                return `
+                    <tr data-siswa-id="${s.id}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.nis}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.nama}</td>
+                        <td class="px-6 py-4"><input type="number" class="w-20 p-1 border rounded-md" value="${nilai.tugas}" data-type="tugas"></td>
+                        <td class="px-6 py-4"><input type="number" class="w-20 p-1 border rounded-md" value="${nilai.uts}" data-type="uts"></td>
+                        <td class="px-6 py-4"><input type="number" class="w-20 p-1 border rounded-md" value="${nilai.uas}" data-type="uas"></td>
+                        <td class="px-6 py-4"><button class="btn-save-nilai bg-green-500 text-white p-1 rounded-md" data-id="${s.id}"><i data-lucide="save"></i></button></td>
+                    </tr>
+                `
+            }).join('');
+            lucide.createIcons();
+        };
+
+        const renderAbsensiTable = () => {
+            const tableBody = document.getElementById('absensi-table-body');
+            const kelasId = document.getElementById('absensi-filter-kelas').value;
+            const tanggal = document.getElementById('absensi-filter-tanggal').value;
+
+            if (!tableBody || !kelasId || !tanggal) {
+                if(tableBody) tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Pilih kelas dan tanggal terlebih dahulu.</td></tr>';
+                return;
+            };
+
+            const filteredSiswa = state.siswa.filter(s => s.id_kelas === kelasId);
+            if (filteredSiswa.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Tidak ada siswa di kelas ini.</td></tr>';
+                return;
+            }
+
+            const statusOptions = ['Hadir', 'Sakit', 'Izin', 'Alfa'];
+
+            tableBody.innerHTML = filteredSiswa.map(s => {
+                const absensiSiswa = state.absensi[s.id];
+                const currentStatus = absensiSiswa ? absensiSiswa.status : 'Hadir'; // Default to 'Hadir'
+                
+                const radioButtons = statusOptions.map(status => `
+                    <label class="inline-flex items-center mr-4">
+                        <input type="radio" class="form-radio" name="status-${s.id}" value="${status}" ${currentStatus === status ? 'checked' : ''}>
+                        <span class="ml-2">${status}</span>
+                    </label>
+                `).join('');
+
+                return `
+                    <tr data-siswa-id="${s.id}" data-absensi-id="${absensiSiswa ? absensiSiswa.id : ''}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.nis}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.nama}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${radioButtons}</td>
+                    </tr>
+                `
+            }).join('');
+        };
+        
+        // --- FUNGSI CRUD (CREATE, READ, UPDATE, DELETE) ---
+        const setupCrud = (entity, collectionName) => {
+            const form = document.getElementById(`form-${entity}`);
+            
+            // Simpan data
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const editId = form.querySelector('#edit-id').value;
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                delete data['edit-id'];
+
+                try {
+                    if (editId) {
+                        await setDoc(doc(db, `/artifacts/${appId}/public/data/${collectionName}`, editId), data);
+                    } else {
+                        await addDoc(collection(db, `/artifacts/${appId}/public/data/${collectionName}`), data);
+                    }
+                    closeModal(entity);
+                } catch (err) {
+                    console.error("Error saving document: ", err);
+                }
+            });
+
+            // Hapus data
+            document.getElementById(`view-${entity}`).addEventListener('click', async (e) => {
+                if (e.target.closest(`.btn-delete-${entity}`)) {
+                    const id = e.target.closest(`.btn-delete-${entity}`).dataset.id;
+                    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                        try {
+                           await deleteDoc(doc(db, `/artifacts/${appId}/public/data/${collectionName}`, id));
+                        } catch (err) {
+                           console.error("Error deleting document: ", err);
+                        }
+                    }
+                }
+            });
+
+            // Buka modal untuk edit
+            document.getElementById(`view-${entity}`).addEventListener('click', (e) => {
+                if (e.target.closest(`.btn-edit-${entity}`)) {
+                    const id = e.target.closest(`.btn-edit-${entity}`).dataset.id;
+                    const dataToEdit = state[entity].find(item => item.id === id);
+                    if (dataToEdit) {
+                        form.querySelector('#edit-id').value = id;
+                        for (const key in dataToEdit) {
+                            if (form.elements[key]) {
+                                form.elements[key].value = dataToEdit[key];
+                            }
+                        }
+                        openModal(entity);
+                    }
+                }
+            });
+        };
+        
+        // --- MODAL & NAVIGASI ---
+        const openModal = (entity) => {
+            const modal = document.getElementById(`modal-${entity}`);
+            const form = document.getElementById(`form-${entity}`);
+            form.reset();
+            form.querySelector('#edit-id').value = '';
+            modal.classList.remove('hidden');
+        };
+
+        const closeModal = (entity) => {
+            const modal = document.getElementById(`modal-${entity}`);
+            modal.classList.add('hidden');
+        };
+
+        const switchView = (viewId) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.sidebar-link[href="#${viewId.replace('view-','')}"]`).classList.add('active');
+        };
+        
+        // --- INISIALISASI APLIKASI ---
+        const initializeAppEventListeners = () => {
+             // Event listener untuk navigasi
+            document.querySelector('.sidebar-link[href="#dashboard"]').addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
+            document.querySelector('.sidebar-link[href="#siswa"]').addEventListener('click', (e) => { e.preventDefault(); switchView('siswa'); });
+            document.querySelector('.sidebar-link[href="#guru"]').addEventListener('click', (e) => { e.preventDefault(); switchView('guru'); });
+            document.querySelector('.sidebar-link[href="#mapel"]').addEventListener('click', (e) => { e.preventDefault(); switchView('mapel'); });
+            document.querySelector('.sidebar-link[href="#kelas"]').addEventListener('click', (e) => { e.preventDefault(); switchView('kelas'); });
+            document.querySelector('.sidebar-link[href="#nilai"]').addEventListener('click', (e) => { e.preventDefault(); switchView('nilai'); renderNilaiDropdowns(); renderNilaiTable(); });
+            document.querySelector('.sidebar-link[href="#absensi"]').addEventListener('click', (e) => { e.preventDefault(); switchView('absensi'); renderAbsensiDropdowns(); fetchAbsensi(); });
+            
+            // Event listener untuk tombol tambah data
+            document.getElementById('btn-add-siswa').addEventListener('click', () => openModal('siswa'));
+            document.getElementById('btn-add-guru').addEventListener('click', () => openModal('guru'));
+            document.getElementById('btn-add-mapel').addEventListener('click', () => openModal('mapel'));
+            document.getElementById('btn-add-kelas').addEventListener('click', () => openModal('kelas'));
+
+            // Event listener untuk tombol cancel di modal
+            document.querySelectorAll('.btn-cancel').forEach(btn => {
+                const modalId = btn.closest('.modal').id;
+                const entity = modalId.split('-')[1];
+                btn.addEventListener('click', () => closeModal(entity));
+            });
+
+            // Event listener untuk filter nilai
+            document.getElementById('nilai-filter-kelas').addEventListener('change', () => {
+                fetchNilai();
+            });
+            document.getElementById('nilai-filter-mapel').addEventListener('change', () => {
+                fetchNilai();
+            });
+
+            // Event listener untuk filter absensi
+            document.getElementById('absensi-filter-kelas').addEventListener('change', fetchAbsensi);
+            document.getElementById('absensi-filter-tanggal').addEventListener('change', fetchAbsensi);
+
+            // Event listener untuk simpan nilai
+            document.getElementById('nilai-table-body').addEventListener('click', async (e) => {
+                if (e.target.closest('.btn-save-nilai')) {
+                    const button = e.target.closest('.btn-save-nilai');
+                    const row = button.closest('tr');
+                    const siswaId = row.dataset.siswaId;
+                    const kelasId = document.getElementById('nilai-filter-kelas').value;
+                    const mapelId = document.getElementById('nilai-filter-mapel').value;
+                    
+                    const nilaiData = {
+                        id_siswa: siswaId,
+                        id_kelas: kelasId,
+                        id_mapel: mapelId,
+                        tugas: row.querySelector('input[data-type="tugas"]').value || 0,
+                        uts: row.querySelector('input[data-type="uts"]').value || 0,
+                        uas: row.querySelector('input[data-type="uas"]').value || 0,
+                    };
+                    
+                    try {
+                        const nilaiKey = `${siswaId}_${mapelId}`;
+                        const docRef = state.nilai[nilaiKey]?.id ?
+                            doc(db, `/artifacts/${appId}/public/data/nilai`, state.nilai[nilaiKey].id) :
+                            doc(collection(db, `/artifacts/${appId}/public/data/nilai`));
+
+                        await setDoc(docRef, nilaiData);
+                        alert('Nilai berhasil disimpan!');
+                    } catch (error) {
+                        console.error("Error saving nilai: ", error);
+                        alert('Gagal menyimpan nilai.');
+                    }
+                }
+            });
+
+            // Event listener untuk simpan semua absensi
+            document.getElementById('btn-save-all-absensi').addEventListener('click', async () => {
+                const tableRows = document.querySelectorAll('#absensi-table-body tr');
+                const kelasId = document.getElementById('absensi-filter-kelas').value;
+                const tanggal = document.getElementById('absensi-filter-tanggal').value;
+
+                if (!kelasId || !tanggal || tableRows.length === 0 || (tableRows.length === 1 && tableRows[0].textContent.includes('terlebih dahulu'))) {
+                    alert('Pilih kelas dan tanggal, dan pastikan ada siswa di kelas tersebut.');
+                    return;
+                }
+
+                const promises = [];
+                tableRows.forEach(row => {
+                    const siswaId = row.dataset.siswaId;
+                    if (!siswaId) return; // Skip header or empty rows
+                    
+                    const absensiId = row.dataset.absensiId;
+                    const checkedRadio = row.querySelector(`input[name="status-${siswaId}"]:checked`);
+                    
+                    if (checkedRadio) {
+                        const status = checkedRadio.value;
+                        const absensiData = {
+                            id_siswa: siswaId,
+                            id_kelas: kelasId,
+                            tanggal: tanggal,
+                            status: status
+                        };
+
+                        const docRef = absensiId ?
+                            doc(db, `/artifacts/${appId}/public/data/absensi`, absensiId) :
+                            doc(collection(db, `/artifacts/${appId}/public/data/absensi`));
+                        
+                        promises.push(setDoc(docRef, absensiData));
+                    }
+                });
+
+                if (promises.length === 0) {
+                    alert('Tidak ada data absensi untuk disimpan.');
+                    return;
+                }
+
+                try {
+                    await Promise.all(promises);
+                    alert('Data absensi berhasil disimpan!');
+                    fetchAbsensi(); // Refresh data
+                } catch (error) {
+                    console.error("Error saving attendance data: ", error);
+                    alert('Gagal menyimpan data absensi.');
+                }
+            });
+        };
+
+        const fetchNilai = async () => {
+            const kelasId = document.getElementById('nilai-filter-kelas').value;
+            const mapelId = document.getElementById('nilai-filter-mapel').value;
+            
+            if (!kelasId || !mapelId) {
+                if(tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Pilih kelas dan mata pelajaran terlebih dahulu.</td></tr>';
+                return;
+            };
+
+            const q = query(collection(db, `/artifacts/${appId}/public/data/nilai`), where("id_kelas", "==", kelasId), where("id_mapel", "==", mapelId));
+            const querySnapshot = await getDocs(q);
+            
+            // Reset nilai state for this combo
+            Object.keys(state.nilai).forEach(key => {
+                if (key.endsWith(`_${mapelId}`)) {
+                    delete state.nilai[key];
+                }
+            });
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const nilaiKey = `${data.id_siswa}_${data.id_mapel}`;
+                state.nilai[nilaiKey] = { id: doc.id, ...data };
+            });
+            renderNilaiTable();
+        };
+
+        const fetchAbsensi = async () => {
+            const kelasId = document.getElementById('absensi-filter-kelas').value;
+            const tanggal = document.getElementById('absensi-filter-tanggal').value;
+            
+            if (!kelasId || !tanggal) {
+                renderAbsensiTable();
+                return;
+            }
+
+            // Reset current absensi state
+            state.absensi = {};
+
+            const q = query(collection(db, `/artifacts/${appId}/public/data/absensi`), where("id_kelas", "==", kelasId), where("tanggal", "==", tanggal));
+            const querySnapshot = await getDocs(q);
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                state.absensi[data.id_siswa] = { id: doc.id, ...data };
+            });
+            renderAbsensiTable();
+        };
+
+        const renderNilaiDropdowns = () => {
+            const kelasSelect = document.getElementById('nilai-filter-kelas');
+            const mapelSelect = document.getElementById('nilai-filter-mapel');
+            
+            kelasSelect.innerHTML = '<option value="">Pilih Kelas</option>' + state.kelas.map(k => `<option value="${k.id}">${k.nama_kelas}</option>`).join('');
+            mapelSelect.innerHTML = '<option value="">Pilih Mapel</option>' + state.mapel.map(m => `<option value="${m.id}">${m.nama_mapel}</option>`).join('');
+        };
+
+        const renderAbsensiDropdowns = () => {
+            const kelasSelect = document.getElementById('absensi-filter-kelas');
+            kelasSelect.innerHTML = '<option value="">Pilih Kelas</option>' + state.kelas.map(k => `<option value="${k.id}">${k.nama_kelas}</option>`).join('');
+            
+            // Set default date to today
+            const tanggalInput = document.getElementById('absensi-filter-tanggal');
+            if (!tanggalInput.value) {
+                tanggalInput.value = new Date().toISOString().split('T')[0];
+            }
+        };
+        
+        function initializeAppState() {
+            if (!currentUserId) return;
+            console.log("Initializing app for user:", currentUserId);
+
+            // --- BUAT STRUKTUR VIEW DAN MODAL ---
+            createMasterViewHTML('siswa', 'Data Siswa', 'Tambah Siswa', ['NIS', 'Nama', 'Kelas']);
+            createMasterViewHTML('guru', 'Data Guru', 'Tambah Guru', ['NIP', 'Nama', 'Mapel Pengampu']);
+            createMasterViewHTML('mapel', 'Mata Pelajaran', 'Tambah Mapel', ['Kode', 'Nama Mata Pelajaran']);
+            createMasterViewHTML('kelas', 'Data Kelas', 'Tambah Kelas', ['Nama Kelas', 'Wali Kelas']);
+            
+            document.getElementById('modal-container').innerHTML += createModalHTML('modal-siswa', 'Form Data Siswa', [
+                { id: 'nis', label: 'NIS', type: 'text', placeholder: 'Masukkan NIS' },
+                { id: 'nama', label: 'Nama Lengkap', type: 'text', placeholder: 'Masukkan Nama Lengkap' },
+                { id: 'id_kelas', label: 'Kelas', type: 'select', placeholder: 'Pilih Kelas', options: state.kelas.map(k => ({value: k.id, text: k.nama_kelas})) }
+            ]);
+            document.getElementById('modal-container').innerHTML += createModalHTML('modal-guru', 'Form Data Guru', [
+                { id: 'nip', label: 'NIP', type: 'text', placeholder: 'Masukkan NIP' },
+                { id: 'nama', label: 'Nama Lengkap', type: 'text', placeholder: 'Masukkan Nama Lengkap' },
+                { id: 'mapel', label: 'Mapel Pengampu', type: 'text', placeholder: 'Contoh: Matematika' },
+            ]);
+            document.getElementById('modal-container').innerHTML += createModalHTML('modal-mapel', 'Form Mata Pelajaran', [
+                { id: 'kode_mapel', label: 'Kode Mapel', type: 'text', placeholder: 'Contoh: MTK-X' },
+                { id: 'nama_mapel', label: 'Nama Mata Pelajaran', type: 'text', placeholder: 'Contoh: Matematika' }
+            ]);
+            document.getElementById('modal-container').innerHTML += createModalHTML('modal-kelas', 'Form Data Kelas', [
+                { id: 'nama_kelas', label: 'Nama Kelas', type: 'text', placeholder: 'Contoh: X IPA 1' },
+                { id: 'id_walikelas', label: 'Wali Kelas', type: 'select', placeholder: 'Pilih Wali Kelas', options: state.guru.map(g => ({value: g.id, text: g.nama})) }
+            ]);
+            
+            // --- SETUP CRUD LISTENERS ---
+            setupCrud('siswa', 'siswa');
+            setupCrud('guru', 'guru');
+            setupCrud('mapel', 'mapel');
+            setupCrud('kelas', 'kelas');
+
+            // --- AMBIL DATA REAL-TIME DARI FIRESTORE ---
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/siswa`), (snapshot) => {
+                state.siswa = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderSiswaTable();
+                document.getElementById('total-siswa').textContent = state.siswa.length;
+            });
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/guru`), (snapshot) => {
+                state.guru = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderGuruTable();
+                document.getElementById('total-guru').textContent = state.guru.length;
+                 // Update dropdown wali kelas
+                const waliKelasSelect = document.getElementById('id_walikelas');
+                if(waliKelasSelect) waliKelasSelect.innerHTML = '<option value="">Pilih Wali Kelas</option>' + state.guru.map(g => `<option value="${g.id}">${g.nama}</option>`).join('');
+            });
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/mapel`), (snapshot) => {
+                state.mapel = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMapelTable();
+                document.getElementById('total-mapel').textContent = state.mapel.length;
+            });
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/kelas`), (snapshot) => {
+                state.kelas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderKelasTable();
+                document.getElementById('total-kelas').textContent = state.kelas.length;
+                // Update dropdown kelas siswa
+                const kelasSiswaSelect = document.getElementById('id_kelas');
+                if(kelasSiswaSelect) kelasSiswaSelect.innerHTML = '<option value="">Pilih Kelas</option>' + state.kelas.map(k => `<option value="${k.id}">${k.nama_kelas}</option>`).join('');
+            });
+            
+            initializeAppEventListeners();
+            lucide.createIcons();
+            switchView('dashboard');
+        }
+    </script>
+</body>
+</html>
+
